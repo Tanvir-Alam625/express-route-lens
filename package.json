@@ -1,6 +1,6 @@
 {
   "name": "express-route-printer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A developer tool to inspect and print Express.js routes with recursive discovery, middleware counting, and JSON export",
   "main": "src/index.js",
   "bin": {
