@@ -1,0 +1,32 @@
+{
+  "name": "express-route-printer",
+  "version": "1.0.0",
+  "description": "A developer tool to inspect and print Express.js routes with recursive discovery, middleware counting, and JSON export",
+  "main": "src/index.js",
+  "bin": {
+    "express-route-printer": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "node test/test.js",
+    "start": "node bin/cli.js"
+  },
+  "keywords": [
+    "express",
+    "routes",
+    "debug",
+    "cli",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.3"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
