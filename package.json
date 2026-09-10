@@ -1,7 +1,12 @@
 {
   "name": "express-route-lens",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A developer tool to inspect and print Express.js routes with recursive discovery, middleware counting, and JSON export",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tanvir-Alam625/express-route-lens.git"
+  },
+  "homepage": "https://github.com/Tanvir-Alam625/express-route-lens#readme",
   "main": "src/index.js",
   "bin": {
     "express-route-lens": "bin/cli.js"
