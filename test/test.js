@@ -25,6 +25,7 @@ apiRouter.use('/admin', adminRouter);
 app.use('/api', apiRouter);
 
 app.get('/api/test', (req, res) => res.json({ test: true }));
+app.get('/api/auth/register', (req, res) => res.json({}));
 
 console.log('=== Test 1: Basic Route Discovery ===');
 const printer = new ExpressRoutePrinter(app);
@@ -46,11 +47,10 @@ console.log(JSON.stringify(printer.toJSON(), null, 2));
 
 console.log('\n=== Test 3: Security Audit ===');
 const audit = getSecurityAudit(app);
-if (audit.length > 0) {
-  audit.forEach(a => console.log(`  ⚠ [${a.method}] ${a.path}: ${a.warning}`));
-} else {
-  console.log('  ✓ No security issues found');
+if (!audit.some(issue => issue.path === '/api/auth/register')) {
+  throw new Error('Security audit did not flag an unprotected auth route');
 }
+audit.forEach(a => console.log(`  ⚠ [${a.method}] ${a.path}: ${a.warning}`));
 
 console.log('\n=== Test 4: Shadow Detection ===');
 const shadows = printer.findShadows();

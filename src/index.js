@@ -7,6 +7,18 @@ class ExpressRoutePrinter {
       showMiddlewareCount: options.showMiddlewareCount !== false,
       colorize: options.colorize !== false,
       basePath: options.basePath || '',
+      sensitivePaths: options.sensitivePaths || [
+        '/admin',
+        '/auth',
+        '/users',
+        '/profile',
+        '/me',
+        '/dashboard',
+        '/register',
+        '/login',
+        '/change-password',
+        '/email'
+      ],
       ...options
     };
     this.routes = [];
@@ -119,13 +131,15 @@ class ExpressRoutePrinter {
   }
 
   getSecurityAudit() {
-    const sensitivePaths = ['/admin', '/api/admin', '/auth', '/api/auth', '/users', '/api/users'];
     const audit = [];
 
     for (const route of this.routes) {
-      const isSensitive = sensitivePaths.some(sensitivePath =>
-        route.path.startsWith(sensitivePath) || route.path.includes(sensitivePath)
-      );
+      const isSensitive = this.options.sensitivePaths.some(sensitivePath => {
+        const normalizedPath = sensitivePath.replace(/\/+$/, '') || '/';
+        return route.path === normalizedPath ||
+          route.path.includes(`${normalizedPath}/`) ||
+          route.path.endsWith(normalizedPath);
+      });
 
       if (isSensitive && route.middlewareCount < 2) {
         audit.push({

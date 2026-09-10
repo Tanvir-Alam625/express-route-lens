@@ -1,6 +1,6 @@
 {
   "name": "express-route-lens",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A developer tool to inspect and print Express.js routes with recursive discovery, middleware counting, and JSON export",
   "repository": {
     "type": "git",
@@ -26,7 +26,8 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
-    "cli-table3": "^0.6.3"
+    "cli-table3": "^0.6.3",
+    "commander": "^12.1.0"
   },
   "peerDependencies": {
     "express": "^4.18.2 || ^5.0.0"

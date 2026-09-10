@@ -7,6 +7,7 @@ const chalk = require('chalk');
 const Table = require('cli-table3');
 const fs = require('fs');
 const path = require('path');
+const packageJson = require('../package.json');
 const { ExpressRoutePrinter, findShadows, getSecurityAudit } = require('../src/index');
 
 const program = new Command();
@@ -14,7 +15,7 @@ const program = new Command();
 program
   .name('express-route-lens')
   .description('Print Express.js routes with recursive discovery')
-    .version('1.0.0')
+  .version(packageJson.version)
   .option('-f, --file <path>', 'Path to Express app file')
   .option('-j, --json', 'Output as JSON')
   .option('-c, --colors', 'Enable colored output', true)
