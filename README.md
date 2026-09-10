@@ -91,6 +91,45 @@ express-route-lens -f ./app.js --no-colors
 | `showMiddlewareCount` | boolean | `true` | Show middleware count |
 | `basePath` | string | `''` | Base path prefix |
 
+## Automated Releases
+
+This repository includes GitHub Actions workflows for testing and publishing:
+
+- `.github/workflows/ci.yml` runs tests on pushes to `main` and pull requests.
+- `.github/workflows/publish.yml` publishes only version tags such as `v1.0.1`.
+
+### Configure npm Trusted Publishing
+
+In npm, open **Package Settings > Trusted Publisher > GitHub Actions** and use:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `Tanvir-Alam625` |
+| Repository | `express-route-printer` |
+| Workflow filename | `publish.yml` |
+| Environment name | Leave empty |
+
+The workflow uses GitHub's OIDC token, so no npm token needs to be stored in GitHub Secrets. Keep the workflow filename and repository values exact.
+
+### Release a Version
+
+Update the version without creating a Git tag locally:
+
+```bash
+npm version patch --no-git-tag-version
+```
+
+Commit the version and lockfile changes, push them, then create and push the matching tag:
+
+```bash
 ## License
+git commit -m "release: v1.0.1"
+git push origin main
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The tag must exactly match the version in `package.json`. The publish workflow installs dependencies, runs tests and the production audit, then publishes `express-route-lens` with provenance.
+
 
 MIT
