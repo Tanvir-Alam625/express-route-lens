@@ -1,4 +1,4 @@
-# express-route-printer
+# express-route-lens
 
 A developer tool to inspect and print Express.js routes with recursive discovery, middleware counting, and JSON export for CI/CD integration.
 
@@ -15,7 +15,7 @@ A developer tool to inspect and print Express.js routes with recursive discovery
 ## Installation
 
 ```bash
-npm install express-route-printer --save-dev
+npm install express-route-lens --save-dev
 ```
 
 ## Usage
@@ -24,7 +24,7 @@ npm install express-route-printer --save-dev
 
 ```javascript
 const express = require('express');
-const { ExpressRoutePrinter, getSecurityAudit } = require('express-route-printer');
+const { ExpressRoutePrinter, getSecurityAudit } = require('express-route-lens');
 
 const app = express();
 const router = express.Router();
@@ -46,25 +46,25 @@ console.log(audit);
 
 ```bash
 # Print routes from an Express app file
-express-route-printer -f ./app.js
+express-route-lens -f ./app.js
 
 # Output as JSON
-express-route-printer -f ./app.js --json
+express-route-lens -f ./app.js --json
 
 # Show middleware count
-express-route-printer -f ./app.js --middleware
+express-route-lens -f ./app.js --middleware
 
 # Run security audit
-express-route-printer -f ./app.js --audit
+express-route-lens -f ./app.js --audit
 
 # Detect route shadowing
-express-route-printer -f ./app.js --shadows
+express-route-lens -f ./app.js --shadows
 
 # Save output to file
-express-route-printer -f ./app.js --output routes.json
+express-route-lens -f ./app.js --output routes.json
 
 # Disable colors
-express-route-printer -f ./app.js --no-colors
+express-route-lens -f ./app.js --no-colors
 ```
 
 ## API

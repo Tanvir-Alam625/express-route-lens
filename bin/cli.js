@@ -12,9 +12,9 @@ const { ExpressRoutePrinter, findShadows, getSecurityAudit } = require('../src/i
 const program = new Command();
 
 program
-  .name('express-route-printer')
+  .name('express-route-lens')
   .description('Print Express.js routes with recursive discovery')
-  .version('1.0.0')
+    .version('1.0.0')
   .option('-f, --file <path>', 'Path to Express app file')
   .option('-j, --json', 'Output as JSON')
   .option('-c, --colors', 'Enable colored output', true)
