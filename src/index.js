@@ -23,8 +23,11 @@ class ExpressRoutePrinter {
 
     if (layerOrRouter.stack) {
       this._processStack(layerOrRouter.stack, basePath);
-    } else if (layerOrRouter._router && layerOrRouter._router.stack) {
-      this._processStack(layerOrRouter._router.stack, basePath);
+    } else {
+      const router = layerOrRouter._router || layerOrRouter.router;
+      if (router && router.stack) {
+        this._processStack(router.stack, basePath);
+      }
     }
   }
 

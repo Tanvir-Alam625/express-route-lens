@@ -35,6 +35,12 @@ routes.forEach(r => {
   console.log(`  [${r.method}] ${r.path} (middleware: ${r.middlewareCount})`);
 });
 
+const expressFiveStyleApp = { router: app._router };
+const expressFiveStyleRoutes = new ExpressRoutePrinter(expressFiveStyleApp).printRoutes();
+if (expressFiveStyleRoutes.length !== routes.length) {
+  throw new Error('Express 5-style app.router discovery failed');
+}
+
 console.log('\n=== Test 2: JSON Export ===');
 console.log(JSON.stringify(printer.toJSON(), null, 2));
 
