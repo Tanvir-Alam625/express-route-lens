@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "node test/test.js",
-    "start": "node bin/cli.js"
+    "start": "node api.js && node bin/cli.js"
   },
   "keywords": [
     "express",
