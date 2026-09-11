@@ -1,234 +1,125 @@
 # express-route-lens
 
-Inspect an Express application without starting a second server. `express-route-lens` discovers routes registered directly on an app or through nested routers, reconstructs mounted paths, reports route middleware counts, detects duplicate method/path registrations, and audits configured sensitive paths.
+`express-route-lens` inspects an Express application after its routes are registered. It lists methods, complete paths, route handlers, duplicate registrations, and endpoints that may need an authentication review.
 
-## Features
-
-- Recursive discovery of Express 4 and Express 5 applications and routers
-- Full path reconstruction for mounted routers such as `/api/auth/register`
-- HTTP method and route middleware reporting
-- JSON output for scripts and CI pipelines
-- Sensitive-route security audit based on middleware count
-- Duplicate route detection
-- CLI output with optional colors and file export
-
-## Requirements
-
-- Node.js 14 or newer
-- Express 4.18 or Express 5
-
-## Installation
-
-Install as a development dependency:
+## Install
 
 ```bash
 npm install --save-dev express-route-lens
 ```
 
-The package includes the CLI runtime dependencies. Your application must provide Express as a peer dependency.
+Node.js 14+ is supported. Express is a peer dependency (Express 4 or 5).
 
-## Library Usage
-
-### CommonJS
+## Use it in an application
 
 ```js
 const express = require('express');
-const {
-  ExpressRoutePrinter,
-  getSecurityAudit
-} = require('express-route-lens');
+const { ExpressRoutePrinter, mount } = require('express-route-lens');
 
 const app = express();
-const router = express.Router();
+const api = express.Router();
 
-router.get('/users', (req, res) => res.json([]));
-app.use('/api', router);
+function authenticateJWT(req, res, next) { next(); }
+api.get('/users', authenticateJWT, (req, res) => res.json([]));
 
-const printer = new ExpressRoutePrinter(app);
-const routes = printer.printRoutes();
+// Use mount for routers. It preserves the mount path for Express 5.
+mount(app, '/api', api);
 
-console.log('Registered routes:', printer.toJSON());
-console.log('Security audit:', getSecurityAudit(app));
+const lens = new ExpressRoutePrinter(app);
+lens.printRoutes();
+console.log(lens.toJSON());
 ```
 
-### ES Modules
+The record for the example includes the full route and the handler names:
 
-Run route discovery after all application routes and middleware have been registered:
+```json
+{
+  "method": "GET",
+  "path": "/api/users",
+  "middlewareCount": 2,
+  "middleware": ["authenticateJWT", "<anonymous>"]
+}
+```
+
+## Express 5: use `mount()` for nested paths
+
+Express 5 does not expose a router’s registered mount path through its runtime `Layer` objects. No route inspector can safely recover an unknown mount path after the fact. `mount(target, path, ...handlers)` calls `target.use()` and stores the path as route-inspection metadata, so nested routes remain exact.
+
+Replace router mounts such as:
 
 ```js
-import express from 'express';
-import { ExpressRoutePrinter, getSecurityAudit } from 'express-route-lens';
-import authRoutes from './routes/auth.js';
-import expenseRoutes from './routes/expense.js';
-
-const app = express();
-
-app.use(express.json());
 app.use('/api/auth', authRoutes);
-app.use('/api/expenses', expenseRoutes);
-
-app.get('/api/protected', authenticateJWT, requireVerifiedEmail, (req, res) => {
-  res.json({ user: req.user });
-});
-
-const printer = new ExpressRoutePrinter(app);
-console.log('Registered Routes:', printer.toJSON());
-
-const securityAudit = getSecurityAudit(app);
-console.log('Security Audit:', securityAudit);
-
-export default app;
 ```
 
-Example output for a mounted authentication router:
+with:
 
 ```js
-{
-  method: 'POST',
-  path: '/api/auth/register',
-  middlewareCount: 1
-}
+import { mount } from 'express-route-lens';
+mount(app, '/api/auth', authRoutes);
 ```
 
-`middlewareCount` is the number of handlers attached directly to that route. Application-level middleware such as `express.json()` is not counted as route middleware.
-
-## Security Audit
-
-The audit checks sensitive paths and reports routes with fewer than two route middleware handlers. It is a review aid, not a replacement for authentication tests or a complete security scanner.
-
-The default sensitive path patterns are:
-
-```text
-/admin, /auth, /users, /profile, /me, /dashboard,
-/register, /login, /change-password, /email
-```
-
-Patterns match path segments inside mounted routes. For example, `/auth` matches `/api/auth/register`.
-
-Customize the patterns when your application uses different conventions:
+Use it at every nested router boundary:
 
 ```js
-const audit = getSecurityAudit(app, {
-  sensitivePaths: ['/billing', '/settings', '/internal']
-});
+mount(app, '/api', apiRouter);
+mount(apiRouter, '/v1', v1Router);
 ```
 
-An audit warning looks like this:
-
-```js
-{
-  path: '/api/profile',
-  method: 'GET',
-  warning: 'Low middleware count - verify authentication is present',
-  middlewareCount: 1
-}
-```
-
-Public endpoints such as registration and login may intentionally have a low middleware count. Remove them from `sensitivePaths` when they should not be reviewed:
-
-```js
-const audit = getSecurityAudit(app, {
-  sensitivePaths: ['/profile', '/me', '/change-password']
-});
-```
+On an untracked Express 5 mount, discovery keeps the child route rather than inventing a wrong path and adds an `UNRESOLVED_MOUNT_PATH` diagnostic. Retrieve diagnostics with `lens.getDiagnostics()` or use the CLI’s `--diagnostics` flag.
 
 ## CLI
 
-Point the CLI at a module that exports an Express app. The module may use CommonJS (`module.exports = app`) or expose `app`/`default`.
+The inspected module must export the Express app using CommonJS (`module.exports = app`) or expose `app`/`default` from a CommonJS-loadable module.
 
 ```bash
-# Print a route table
-npx express-route-lens --file ./app.js
+# Route table
+npx express-route-lens --file ./src/app.js
 
-# Export routes as JSON
-npx express-route-lens --file ./app.js --json
+# Include route handler names
+npx express-route-lens --file ./src/app.js --middleware
 
-# Run the security audit
-npx express-route-lens --file ./app.js --audit
+# Search paths, methods, or handler names
+npx express-route-lens --file ./src/app.js --search expense
+npx express-route-lens --file ./src/app.js --method GET
 
-# Detect duplicate method/path registrations
-npx express-route-lens --file ./app.js --shadows
+# Machine-readable output, including diagnostics
+npx express-route-lens --file ./src/app.js --json
 
-# Save output to a file and disable colors
-npx express-route-lens --file ./app.js --json --output routes.json --no-colors
+# Review duplicate registrations or sensitive endpoints
+npx express-route-lens --file ./src/app.js --shadows
+npx express-route-lens --file ./src/app.js --audit
+
+# Save the selected output
+npx express-route-lens --file ./src/app.js --json --output routes.json
 ```
 
-Options:
-
-| Option | Description |
-| --- | --- |
-| `-f, --file <path>` | Express app module to inspect |
-| `-j, --json` | Print JSON route data |
-| `-m, --middleware` | Show middleware counts |
-| `--audit` | Run the sensitive-route audit |
-| `--shadows` | Report duplicate method/path registrations |
-| `-o, --output <file>` | Write output to a file |
-| `--no-colors` | Disable colored terminal output |
+The CLI uses `require()` to load the app module. For a native ES module, create a small CommonJS inspection entry point or use the library API inside your application after registration.
 
 ## API
 
-### `ExpressRoutePrinter`
-
 ```js
-const printer = new ExpressRoutePrinter(app, options);
+const lens = new ExpressRoutePrinter(app, {
+  sensitivePaths: ['/profile', '/billing', '/internal']
+});
+
+lens.printRoutes();
+lens.toJSON();           // serializable route records
+lens.getRoutes();        // route records with internal layer reference
+lens.getDiagnostics();   // Express 5 mount-path limitations
+lens.findShadows();      // duplicate method/path registrations
+lens.getSecurityAudit(); // sensitive routes without an auth-like route handler
 ```
 
-| Method | Description |
-| --- | --- |
-| `printRoutes()` | Discover routes and return route records |
-| `toJSON()` | Return serializable method, path, and middleware data |
-| `getRoutes()` | Return the most recently discovered route records |
-| `findShadows()` | Find duplicate method/path registrations |
-| `getSecurityAudit()` | Audit the discovered routes |
+Convenience exports are also available: `printRoutes(app)`, `findShadows(app)`, and `getSecurityAudit(app)`.
 
-Options:
+## Audit behavior
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `basePath` | `''` | Prefix added to every discovered route |
-| `showMiddlewareCount` | `true` | Retained for output compatibility |
-| `colorize` | `true` | Retained for output compatibility |
-| `sensitivePaths` | See audit section | Path patterns reviewed by the audit |
+The audit is a review signal, not a security guarantee. It looks at route-level handler names for authentication-related terms such as `auth`, `jwt`, `session`, `guard`, and `protect`. It does not infer application-wide or router-wide middleware, and it deliberately does not flag public login and registration endpoints by default. Configure `sensitivePaths` for your application’s conventions and protect routes with tests.
 
-### Helper functions
+## Release notes: 1.0.6
 
-```js
-const {
-  printRoutes,
-  findShadows,
-  getSecurityAudit
-} = require('express-route-lens');
-
-printRoutes(app, options);
-findShadows(app, options);
-getSecurityAudit(app, options);
-```
-
-## Development
-
-```bash
-npm install
-npm test
-```
-
-The test suite covers nested routers, Express-style app router discovery, JSON output, shadow detection, and security auditing.
-
-## Releases
-
-Releases are published by the GitHub Actions workflow when a matching version tag is pushed:
-
-```bash
-npm version patch --no-git-tag-version
-npm test
-git add package.json package-lock.json
-git commit -m "release: vX.Y.Z"
-git push origin main
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push origin vX.Y.Z
-```
-
-The tag must match the version in `package.json` exactly. npm trusted publishing must be configured for the repository workflow before publishing.
-
-## License
-
-MIT
+- Added Express 5-safe `mount()` metadata tracking for exact nested paths.
+- Added route handler names to API and JSON output.
+- Added searchable CLI output with `--search` and `--method`.
+- Added discovery diagnostics instead of silently reporting a partial route as complete.
+- Improved duplicate reporting and made the security audit less noisy.
