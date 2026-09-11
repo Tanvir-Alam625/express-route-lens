@@ -1,63 +1,62 @@
+'use strict';
+
+const assert = require('assert');
 const express = require('express');
-const { ExpressRoutePrinter, findShadows, getSecurityAudit } = require('../src/index');
+const { ExpressRoutePrinter, mount } = require('../src');
+
+function authenticateJWT(req, res, next) { next(); }
+function listUsers(req, res) { res.json([]); }
 
 const app = express();
+const api = express.Router();
+const v1 = express.Router();
+v1.use(authenticateJWT);
+v1.get('/users', listUsers);
+mount(api, '/v1', v1);
+mount(app, '/api', api);
+app.get('/health', (req, res) => res.json({ ok: true }));
 
-app.use(express.json());
-
-app.get('/', (req, res) => res.send('Home'));
-
-const apiRouter = express.Router();
-
-const v1Router = express.Router({ mergeParams: true });
-
-v1Router.get('/users', (req, res) => res.json([]));
-v1Router.get('/users/:id', (req, res) => res.json({ id: req.params.id }));
-v1Router.post('/users', (req, res) => res.json({}));
-
-const adminRouter = express.Router();
-adminRouter.get('/dashboard', (req, res) => res.send('Admin Dashboard'));
-adminRouter.get('/settings', (req, res) => res.send('Settings'));
-
-apiRouter.use('/v1', v1Router);
-apiRouter.use('/admin', adminRouter);
-
-app.use('/api', apiRouter);
-
-app.get('/api/test', (req, res) => res.json({ test: true }));
-app.get('/api/auth/register', (req, res) => res.json({}));
-
-console.log('=== Test 1: Basic Route Discovery ===');
 const printer = new ExpressRoutePrinter(app);
 const routes = printer.printRoutes();
+assert.deepStrictEqual(printer.toJSON(), [
+  {
+    method: 'GET', path: '/api/v1/users', middlewareCount: 1, middleware: ['authenticateJWT'],
+    middlewareDetails: [{ name: 'authenticateJWT', source: 'mounted', path: '/api/v1' }],
+    handlerCount: 1, handlers: ['listUsers']
+  },
+  {
+    method: 'GET', path: '/health', middlewareCount: 0, middleware: [], middlewareDetails: [],
+    handlerCount: 1, handlers: ['<anonymous>']
+  }
+]);
+assert.strictEqual(printer.getDiagnostics().length, 0);
+assert.strictEqual(printer.getSecurityAudit().length, 0);
 
-console.log(`Found ${routes.length} routes:`);
-routes.forEach(r => {
-  console.log(`  [${r.method}] ${r.path} (middleware: ${r.middlewareCount})`);
-});
-
-const expressFiveStyleApp = { router: app._router };
-const expressFiveStyleRoutes = new ExpressRoutePrinter(expressFiveStyleApp).printRoutes();
-if (expressFiveStyleRoutes.length !== routes.length) {
-  throw new Error('Express 5-style app.router discovery failed');
+// Model the opaque mount matcher used by Express 5. It exposes no `path` or
+// `regexp`, which is why explicit tracking is required.
+function modernApp() {
+  return {
+    router: { stack: [] },
+    use(path, ...handlers) {
+      handlers.forEach(handle => this.router.stack.push({ handle, matchers: [() => true] }));
+    }
+  };
+}
+function modernRouter() {
+  return { stack: [{ route: { path: '/items', stack: [{ handle: listUsers }], methods: { get: true } } }] };
 }
 
-console.log('\n=== Test 2: JSON Export ===');
-console.log(JSON.stringify(printer.toJSON(), null, 2));
+// An untracked Express 5 router must never be reported with a false complete path.
+const app5 = modernApp();
+const router5 = modernRouter();
+app5.use('/api', router5);
+const untracked = new ExpressRoutePrinter(app5);
+assert.strictEqual(untracked.printRoutes()[0].path, '/items');
+assert.strictEqual(untracked.getDiagnostics()[0].code, 'UNRESOLVED_MOUNT_PATH');
 
-console.log('\n=== Test 3: Security Audit ===');
-const audit = getSecurityAudit(app);
-if (!audit.some(issue => issue.path === '/api/auth/register')) {
-  throw new Error('Security audit did not flag an unprotected auth route');
-}
-audit.forEach(a => console.log(`  ⚠ [${a.method}] ${a.path}: ${a.warning}`));
+const trackedApp5 = modernApp();
+const trackedRouter5 = modernRouter();
+mount(trackedApp5, '/api', trackedRouter5);
+assert.strictEqual(new ExpressRoutePrinter(trackedApp5).printRoutes()[0].path, '/api/items');
 
-console.log('\n=== Test 4: Shadow Detection ===');
-const shadows = printer.findShadows();
-if (shadows.length > 0) {
-  shadows.forEach(s => console.log(`  ⚠ ${s.path} shadowed by ${s.shadowedBy}`));
-} else {
-  console.log('  ✓ No shadowing detected');
-}
-
-console.log('\n=== All tests passed ===');
+console.log('All tests passed');
