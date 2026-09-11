@@ -1,5 +1,7 @@
 # express-route-lens
 
+<img src="./thumbnail.png" alt="express-route-lens overview" width="100%" style="border-radius: 12px;">
+
 `express-route-lens` inspects an Express application after its routes are registered. It lists methods, complete paths, route handlers, duplicate registrations, and endpoints that may need an authentication review.
 
 ## Install
@@ -117,7 +119,7 @@ Convenience exports are also available: `printRoutes(app)`, `findShadows(app)`, 
 
 The audit is a review signal, not a security guarantee. It looks at middleware names for authentication-related terms such as `auth`, `jwt`, `session`, `guard`, and `protect`, including middleware added by `router.use()`. It deliberately does not flag public login and registration endpoints by default. Configure `sensitivePaths` for your application’s conventions and protect routes with tests.
 
-## Release notes: 1.0.7
+## Release notes: 1.0.8
 
 - Added Express 5-safe `mount()` metadata tracking for exact nested paths.
 - Added route handler names to API and JSON output.

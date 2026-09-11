@@ -1,6 +1,6 @@
 {
   "name": "express-route-lens",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Inspect Express routes, middleware, nested mounts, duplicates, and sensitive endpoints",
   "repository": {
     "type": "git",
