@@ -117,7 +117,7 @@ Convenience exports are also available: `printRoutes(app)`, `findShadows(app)`, 
 
 The audit is a review signal, not a security guarantee. It looks at middleware names for authentication-related terms such as `auth`, `jwt`, `session`, `guard`, and `protect`, including middleware added by `router.use()`. It deliberately does not flag public login and registration endpoints by default. Configure `sensitivePaths` for your application’s conventions and protect routes with tests.
 
-## Release notes: 1.0.6
+## Release notes: 1.0.7
 
 - Added Express 5-safe `mount()` metadata tracking for exact nested paths.
 - Added route handler names to API and JSON output.
